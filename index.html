@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Анти-ИИ Аудиометр</title>
+    <style>
+        /* Стили для первой страницы (заставка) */
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:#000;min-height:100vh;display:flex;justify-content:center;align-items:center;}
+        .screen{position:relative;width:100vw;height:100vh;max-width:450px;max-height:800px;aspect-ratio:9/16;background:#000;overflow:hidden;margin:auto;}
+        .layers{position:absolute;top:0;left:0;width:100%;height:100%;}
+        .layers img,.layers video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block;}
+        .sound-btn{position:absolute;top:18px;left:18px;z-index:30;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);border-radius:60px;border:1px solid rgba(255,255,255,0.4);padding:12px 26px;cursor:pointer;display:flex;align-items:center;gap:12px;font-weight:bold;font-size:1.4rem;color:white;transition:0.1s ease;font-family:system-ui;}
+        .sound-btn:active{transform:scale(0.96);}
+        .sound-btn .ico{font-size:1.9rem;}
+        .sound-btn .txt{font-size:1.25rem;}
+        @media (max-width:480px){.sound-btn{padding:8px 20px;}.sound-btn .ico{font-size:1.6rem;}.sound-btn .txt{font-size:1.1rem;}}
+        
+        /* Стили для второй страницы (основное приложение) */
+        :root {
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --neon-blue: #00f2fe;
+            --neon-purple: #a18cd1;
+            --support-gold: #ffd700;
+        }
+
+        .app-container {
+            background: radial-gradient(circle at center, #1a2a6c, #b21f1f, #fdbb2d);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            position: relative;
+            overflow: auto;
+        }
+        
+        .app-container::-webkit-scrollbar { display: none; }
+        .app-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            padding: 40px;
+            width: 420px;
+            max-width: 95vw;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), 
+                        inset 0 0 20px rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: visible;
+            margin: 20px auto;
+        }
+
+        .glass-card::-webkit-scrollbar { display: none; }
+
+        /* Логотип + заголовок по центру вверху */
+        .header-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 8px;
+        }
+        
+        .app-title {
+            color: white;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            font-size: 1.5rem;
+        }
+
+        #display {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 5px 15px rgba(0,0,0,0.5);
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: all 0.5s ease;
+        }
+
+        #status { 
+            color: var(--neon-blue); 
+            font-size: 1.4rem; 
+            font-weight: bold; 
+            text-shadow: 0 0 15px var(--neon-blue); 
+            margin-bottom: 5px;
+            transition: transform 0.3s ease;
+        }
+        
+        #subStatus { 
+            color: white; 
+            font-size: 0.9rem; 
+            margin-top: 8px; 
+            opacity: 0.8; 
+            min-height: 1.2em;
+        }
+
+        #mainBtn {
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 20px 50px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2),
+                        inset 0 2px 2px rgba(255,255,255,0.2);
+            text-transform: uppercase;
+            overflow: hidden;
+            width: 100%;
+            max-width: 280px;
+            margin-bottom: 15px;
+        }
+
+        #mainBtn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+        }
+
+        #mainBtn:hover::before { left: 100%; }
+
+        #mainBtn:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 15px 30px rgba(0,242,254,0.3);
+            border-color: var(--neon-blue);
+        }
+
+        #mainBtn:active {
+            transform: translateY(2px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        }
+
+        #mainBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .result-btn {
+            position: relative;
+            background: linear-gradient(135deg, rgba(0,242,254,0.2), rgba(161,140,209,0.2));
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 14px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            width: 100%;
+            max-width: 280px;
+            letter-spacing: 1px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+
+        .result-btn:hover {
+            background: linear-gradient(135deg, rgba(0,242,254,0.35), rgba(161,140,209,0.35));
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,242,254,0.2);
+        }
+
+        .result-btn:active { transform: translateY(1px); }
+
+        .support-btn {
+            position: relative;
+            background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,100,0,0.15));
+            border: 1px solid var(--support-gold);
+            color: var(--support-gold);
+            padding: 14px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            width: 100%;
+            max-width: 280px;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .support-btn:hover {
+            background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,100,0,0.3));
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255,215,0,0.2);
+        }
+
+        .support-btn:active { transform: translateY(1px); }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.3s ease, opacity 0.3s ease;
+        }
+
+        .overlay.show { visibility: visible; opacity: 1; }
+
+        .result-modal {
+            background: rgba(10, 20, 40, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 40px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 85vh;
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0,242,254,0.2);
+            position: relative;
+            overflow-y: auto;
+            animation: modalFadeIn 0.4s ease;
+        }
+
+        .support-modal {
+            background: rgba(10, 20, 40, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 40px;
+            padding: 35px;
+            width: 90%;
+            max-width: 450px;
+            border: 1px solid var(--support-gold);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255,215,0,0.2);
+            position: relative;
+            animation: modalFadeIn 0.4s ease;
+            text-align: center;
+        }
+
+        .result-modal::-webkit-scrollbar,
+        .support-modal::-webkit-scrollbar { display: none; }
+        .result-modal, .support-modal { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .result-modal h3 {
+            color: var(--neon-blue);
+            font-size: 1.4rem;
+            text-align: center;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .support-modal h3 {
+            color: var(--support-gold);
+            font-size: 1.6rem;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .support-modal h4 {
+            color: var(--support-gold);
+            font-size: 1.2rem;
+            margin: 15px 0 10px 0;
+        }
+
+        .result-content {
+            color: white;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .result-content h4 {
+            color: var(--neon-blue);
+            margin: 15px 0 10px 0;
+            font-size: 1.1rem;
+        }
+
+        .result-content p { margin: 10px 0; }
+
+        .frequency-badge {
+            display: inline-block;
+            background: rgba(0,242,254,0.2);
+            border: 1px solid var(--neon-blue);
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .recommendation {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 3px solid var(--neon-blue);
+        }
+
+        .close-modal-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .close-modal-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.1);
+        }
+
+        .phone-number {
+            background: rgba(255,215,0,0.15);
+            border: 1px solid var(--support-gold);
+            border-radius: 20px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--support-gold);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .copy-btn {
+            background: rgba(255,215,0,0.2);
+            border: 1px solid var(--support-gold);
+            color: var(--support-gold);
+            padding: 8px 20px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255,215,0,0.4);
+            transform: scale(1.02);
+        }
+
+        .copy-notification {
+            color: #00ff88;
+            font-size: 0.8rem;
+            margin-top: 5px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .copy-notification.show { opacity: 1; }
+
+        .catalog-link {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(0,242,254,0.2), rgba(161,140,209,0.2));
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 12px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            transition: all 0.2s;
+        }
+
+        .catalog-link:hover {
+            background: linear-gradient(135deg, rgba(0,242,254,0.35), rgba(161,140,209,0.35));
+            transform: scale(1.02);
+        }
+
+        .heart {
+            color: #ff4b4b;
+            font-size: 1.3rem;
+            animation: heartbeat 1.5s ease infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        .progress {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .dot {
+            width: 12px; height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transition: all 0.4s ease;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .dot.active {
+            background: var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-blue), 0 0 30px var(--neon-blue);
+            transform: scale(1.3);
+        }
+
+        .dot.error {
+            background: #ff4b2b;
+            box-shadow: 0 0 15px #ff4b2b;
+        }
+
+        .dot.success {
+            background: #00ff88;
+            box-shadow: 0 0 15px #00ff88;
+        }
+
+        .stats { 
+            margin-top: 25px; 
+            font-size: 0.75rem; 
+            color: rgba(255,255,255,0.4); 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            min-height: 1.2em;
+        }
+
+        @media (max-width: 420px) {
+            .glass-card { padding: 25px; width: 95vw; }
+            #mainBtn { padding: 16px 30px; font-size: 1.1rem; }
+            #status { font-size: 1.2rem; }
+            .result-modal, .support-modal { padding: 20px; width: 95%; }
+            .phone-number { font-size: 1.1rem; }
+            .logo-icon { width: 45px; height: 45px; }
+            .app-title { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ПЕРВАЯ СТРАНИЦА: заставка 2 сек фото + 3 сек видео -->
+    <div id="splashScreen" class="screen">
+        <div class="layers">
+            <img id="photo" src="frame.jpg" style="z-index:2">
+            <video id="video" src="cube.mp4" muted playsinline preload="auto" style="z-index:1"></video>
+        </div>
+        <button id="soundBtn" class="sound-btn"><span class="ico">🔇</span><span class="txt">Вкл звук</span></button>
+    </div>
+
+    <!-- ВТОРАЯ СТРАНИЦА: основное приложение (изначально скрыта) -->
+    <div id="appScreen" class="app-container" style="display: none;">
+        <div class="glass-card">
+            <div class="header-center">
+                <img src="favicon.ico" alt="Logo" class="logo-icon" onerror="this.style.display='none'">
+                <h1 class="app-title">Анти ИИ Аудиометр</h1>
+            </div>
+
+            <div id="display">
+                <div id="status">ГОТОВ</div>
+                <div id="subStatus">Нажмите «Старт» для начала теста</div>
+            </div>
+
+            <button id="mainBtn">Старт</button>
+            
+            <button id="resultBtn" class="result-btn">📊 РАСШИФРОВКА РЕЗУЛЬТАТОВ ТЕСТА СЛУХА</button>
+            
+            <button id="supportBtn" class="support-btn">🤝 ПОДДЕРЖАТЬ ПРОЕКТ</button>
+
+            <div class="progress" id="progress">
+                <div class="dot" title="125 Гц"></div>
+                <div class="dot" title="250 Гц"></div>
+                <div class="dot" title="500 Гц"></div>
+                <div class="dot" title="1000 Гц"></div>
+                <div class="dot" title="2000 Гц"></div>
+                <div class="dot" title="4000 Гц"></div>
+                <div class="dot" title="8000 Гц"></div>
+            </div>
+
+            <div class="stats" id="stats">Режим ожидания</div>
+        </div>
+    </div>
+
+    <!-- Оверлей для расшифровки результатов -->
+    <div id="resultOverlay" class="overlay">
+        <div class="result-modal">
+            <button class="close-modal-btn" id="closeModalBtn">✕</button>
+            <h3>📊 РАСШИФРОВКА РЕЗУЛЬТАТОВ</h3>
+            <div id="resultContent" class="result-content"></div>
+        </div>
+    </div>
+
+    <!-- Оверлей для поддержки проекта -->
+    <div id="supportOverlay" class="overlay">
+        <div class="support-modal">
+            <button class="close-modal-btn" id="closeSupportBtn">✕</button>
+            <h3>🤝 ПОДДЕРЖАТЬ ПРОЕКТ</h3>
+            <div class="heart">💙</div>
+            <p style="color: white; margin: 15px 0;">
+                Приложение бесплатное. Было и останется.
+            </p>
+            <p style="color: rgba(255,255,255,0.8); margin: 10px 0;">
+                Если проект помог вам или вашим близким — можете поддержать разработку добровольным переводом.
+            </p>
+            
+            <h4>📱 ПЕРЕВОД ПО НОМЕРУ ТЕЛЕФОНА:</h4>
+            <div class="phone-number">
+                <span>8-920-227-56-76</span>
+                <button class="copy-btn" id="copyPhoneBtn">📋 Копировать номер</button>
+            </div>
+            <div id="copyNotification" class="copy-notification">✅ Номер скопирован!</div>
+            
+            <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem; margin: 10px 0;">
+                ✅ Деньги придут мгновенно. Без комиссии. Безопасно.
+            </p>
+            
+            <p style="color: var(--support-gold); margin: 20px 0 10px 0;">
+                ❤️ Спасибо за поддержку!
+            </p>
+            
+            <a href="https://ancf-hue.github.io/" target="_blank" class="catalog-link">
+                🌟 👉 Каталог бесплатных офлайн-приложений Anti-AI Shield
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // ========== ПЕРВАЯ СТРАНИЦА: плавный переход фото→видео ==========
+        const splashScreen = document.getElementById('splashScreen');
+        const appScreen = document.getElementById('appScreen');
+        const photo = document.getElementById('photo');
+        const video = document.getElementById('video');
+        const soundBtn = document.getElementById('soundBtn');
+        const ico = soundBtn.querySelector('.ico');
+        const txt = soundBtn.querySelector('.txt');
+        
+        let soundOn = false;
+        let videoStarted = false;
+        
+        video.muted = true;
+        
+        function updBtn() { 
+            soundOn ? (ico.innerText='🔊', txt.innerText='Звук вкл') : (ico.innerText='🔇', txt.innerText='Вкл звук'); 
+        }
+        
+        soundBtn.onclick = () => {
+            if(soundOn) { 
+                video.muted = true; 
+                soundOn = false; 
+            } else { 
+                video.muted = false; 
+                soundOn = true; 
+                if(videoStarted && video.paused) video.play().catch(()=>{}); 
+            }
+            updBtn();
+        };
+        
+        function switchToVideo() {
+            if(videoStarted) return;
+            videoStarted = true;
+            video.style.zIndex = '2';
+            photo.style.zIndex = '1';
+            video.play().catch(e => console.log);
+            setTimeout(() => { 
+                if(video && !video.ended) video.pause(); 
+                switchToApp();
+            }, 3000);
+        }
+        
+        function switchToApp() {
+            splashScreen.style.display = 'none';
+            appScreen.style.display = 'flex';
+            if (typeof initAppAudio === 'function') initAppAudio();
+        }
+        
+        if(photo.complete && photo.naturalWidth) setTimeout(switchToVideo, 2000);
+        else { 
+            photo.onload = () => setTimeout(switchToVideo, 2000); 
+            setTimeout(() => { if(!videoStarted) switchToVideo(); }, 2500); 
+        }
+        
+        updBtn();
+
+        // ========== ВТОРАЯ СТРАНИЦА: вся логика аудиометра ==========
+        const VOICE = {
+            start: 'start.mp3',
+            freq: { 125: 'freq_125.mp3', 250: 'freq_250.mp3', 500: 'freq_500.mp3', 1000: 'freq_1000.mp3', 2000: 'freq_2000.mp3', 4000: 'freq_4000.mp3', 8000: 'freq_8000.mp3' },
+            success: { 125: 'success_125.mp3', 250: 'success_250.mp3', 500: 'success_500.mp3', 1000: 'success_1000.mp3', 2000: 'success_2000.mp3', 4000: 'success_4000.mp3', 8000: 'success_8000.mp3' },
+            error: 'error.mp3',
+            doubleError: 'double_error.mp3',
+            perfect: 'perfect.mp3',
+            resultPartial: 'result_partial.mp3'
+        };
+
+        // ========== ПОЛНАЯ РАСШИФРОВКА РЕЗУЛЬТАТОВ ==========
+        const RESULT_TEXTS = {
+            125: { 
+                title: "🔵 125 Гц — Ваш предел: очень низкие частоты", 
+                desc: "Что слышите: Глубокий бас, гул двигателя, раскаты грома, звук вертолёта.<br>Способности: Вы слышите только самые низкие звуки.<br>Влияние на жизнь: Сложно понимать речь, почти не слышите музыку.<br><strong>Рекомендация:</strong> ❗ Обязательно обратитесь к врачу-сурдологу. Это может быть признаком значительной потери слуха." 
+            },
+            250: { 
+                title: "🟢 250 Гц — Ваш предел: низкие частоты", 
+                desc: "Что слышите: Низкие мужские голоса (баритон, бас), звук мотора, басовые ноты.<br>Способности: Улавливаете низкие тона, но средние и высокие звуки теряете.<br>Влияние на жизнь: Речь воспринимается как невнятное бормотание. Сложно слушать телевизор или разговаривать по телефону.<br><strong>Рекомендация:</strong> ❗ Посетите врача. Возможно, потребуется слуховой аппарат для низких частот." 
+            },
+            500: { 
+                title: "🟡 500 Гц — Ваш предел: нижний диапазон речи", 
+                desc: "Что слышите: Гласные звуки (А, О, У, Ы, Э), низкий голос женщины, звук виолончели.<br>Способности: Базовая разборчивость речи, но без чёткости.<br>Влияние на жизнь: Вы слышите, что кто-то говорит, но не всегда понимаете слова. Трудно различать похожие по звучанию слова («дом» — «том»).<br><strong>Рекомендация:</strong> 🩺 Проверьте слух у специалиста. Возможно, есть лёгкая тугоухость." 
+            },
+            1000: { 
+                title: "🟡 1000 Гц — Ваш предел: средние частоты", 
+                desc: "Что слышите: Большинство гласных и часть согласных (М, Н, Л, Р, Б, Д, Г).<br>Способности: Понимаете речь в тихой обстановке, но в шуме теряете нить разговора.<br>Влияние на жизнь: Дома и в спокойной обстановке общение комфортно. В кафе, на улице, в компании — сложно. Звук телевизора делаете громче обычного.<br><strong>Рекомендация:</strong> 👂 Регулярно проверяйте слух. Избегайте громких мест. Рассмотрите возможность бережного отношения к слуху." 
+            },
+            2000: { 
+                title: "🟠 2000 Гц — Ваш предел: разговорный диапазон (граница нормы)", 
+                desc: "Что слышите: Взрывные согласные звуки (К, П, Т). Частично шипящие и свистящие в начале диапазона.<br>Способности: Понимаете речь в большинстве ситуаций. Могут выпадать отдельные высокие звуки.<br>Влияние на жизнь: В целом вы слышите нормально, но иногда переспрашиваете: «Что?» в шумных местах. Можете не слышать писк комара, шелест бумаги, тиканье часов.<br><strong>Рекомендация:</strong> ✅ Это хороший результат для взрослого человека 30–50 лет. Если вам меньше 25 — стоит проверить слух. Избегайте громкой музыки в наушниках." 
+            },
+            4000: { 
+                title: "🔵 4000 Гц — Ваш предел: высокие частоты (отличный слух)", 
+                desc: "Что слышите: Почти все звуки речи, включая тонкие шипящие и свистящие. Звон колокольчиков, пение птиц, скрипку.<br>Способности: Отлично понимаете речь даже в шумной обстановке. Слышите тихие бытовые звуки.<br>Влияние на жизнь: Вы слышите практически всё в нормальном диапазоне. Можете наслаждаться музыкой во всех деталях. Способны различать нюансы речи.<br><strong>Рекомендация:</strong> 🎧 Берегите слух! Вы в группе риска, потому что часто слушаете громкую музыку или работаете в шумных местах без защиты. Ваш слух — отличный, но хрупкий." 
+            },
+            8000: { 
+                title: "🟣 8000 Гц — Ваш предел: идеальный слух", 
+                desc: "Что слышите: Весь доступный человеку речевой диапазон + высокие обертоны. Писк комара, шелест фольги, звук песочных часов, ультразвук (частично).<br>Способности: Максимальная разборчивость речи. Вы слышите то, что не слышат большинство людей после 25 лет.<br>Влияние на жизнь: Вы наслаждаетесь музыкой на уровне студийного звучания. Слышите все эмоции в голосе собеседника. Ваша речь артикулирована чётко, потому что вы слышите себя идеально.<br><strong>Рекомендация:</strong> 💎 Ваш слух — редкий и ценный ресурс. Берегите его:<br>• Не слушайте музыку громче 70% в наушниках<br>• Используйте беруши на концертах и в метро<br>• Делайте перерывы в ношении наушников каждый час<br>• Пройдите тест через год — возможно, 6000 Гц станут пределом (это норма с возрастом)" 
+            }
+        };
+
+        const audioCache = {};
+        let currentAudio = null;
+        let audioCtx = null;
+        let isRunning = false;
+        let clicks = 0;
+        let confirmedSteps = 0;
+        let testAborted = false;
+        let isFinishing = false;
+
+        const freqs = [125, 250, 500, 1000, 2000, 4000, 8000];
+        const btn = document.getElementById('mainBtn');
+        const resultBtn = document.getElementById('resultBtn');
+        const supportBtn = document.getElementById('supportBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const closeSupportBtn = document.getElementById('closeSupportBtn');
+        const copyPhoneBtn = document.getElementById('copyPhoneBtn');
+        const statusTxt = document.getElementById('status');
+        const subStatusTxt = document.getElementById('subStatus');
+        const dots = document.querySelectorAll('.dot');
+        const statsDiv = document.getElementById('stats');
+
+        function stopCurrentAudio() { if(currentAudio) try { currentAudio.pause(); currentAudio.currentTime = 0; currentAudio = null; } catch(e) {} }
+
+        function preloadVoiceFiles() {
+            const files = [VOICE.start, VOICE.error, VOICE.doubleError, VOICE.perfect, VOICE.resultPartial,
+                ...Object.values(VOICE.freq), ...Object.values(VOICE.success)];
+            files.forEach(file => {
+                try {
+                    audioCache[file] = new Audio(file);
+                    audioCache[file].preload = 'auto';
+                    audioCache[file].volume = 1;
+                } catch(e) {}
+            });
+        }
+
+        function playVoice(file, interruptible = true) {
+            return new Promise((resolve) => {
+                if(interruptible) stopCurrentAudio();
+                const audio = audioCache[file];
+                if(!audio) { resolve(); return; }
+                audio.currentTime = 0;
+                const onEnd = () => { audio.removeEventListener('ended', onEnd); if(currentAudio === audio) currentAudio = null; resolve(); };
+                const onError = () => { resolve(); };
+                audio.addEventListener('ended', onEnd);
+                audio.addEventListener('error', onError);
+                if(interruptible) currentAudio = audio;
+                audio.play().catch(() => resolve());
+            });
+        }
+
+        function playProfessionalTone(f) {
+            if(!audioCtx) return;
+            try {
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(f, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.35, audioCtx.currentTime + 0.9);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.0);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 1.0);
+                statusTxt.style.transform = "scale(1.05)";
+                setTimeout(() => statusTxt.style.transform = "scale(1)", 400);
+            } catch(e) {}
+        }
+
+        // Функция обновления содержимого расшифровки
+        function updateResultContent() {
+            const resultContent = document.getElementById('resultContent');
+            let lastConfirmedFreq = 0;
+            for(let i=0; i<dots.length; i++) if(dots[i].classList.contains('success')) lastConfirmedFreq = freqs[i];
+            if(confirmedSteps === 7) lastConfirmedFreq = 8000;
+            
+            if(lastConfirmedFreq === 0 && confirmedSteps === 0) {
+                resultContent.innerHTML = `<div class="frequency-badge">❌ РЕЗУЛЬТАТ: 0 Гц</div><p><strong>К сожалению, ни одна частота не была подтверждена.</strong></p><p>Это может означать:</p><ul style="margin:10px 0;padding-left:20px;"><li>Проблемы с воспроизведением звука на вашем устройстве</li><li>Слишком низкая громкость</li><li>Возможные проблемы со слухом</li></ul><div class="recommendation"><strong>🎧 Рекомендация:</strong> Проверьте громкость устройства, убедитесь что наушники или динамики работают исправно. Если проблема повторяется — обратитесь к врачу-сурдологу.</div>`;
+                return;
+            }
+            if(lastConfirmedFreq > 0 && RESULT_TEXTS[lastConfirmedFreq]) {
+                const text = RESULT_TEXTS[lastConfirmedFreq];
+                resultContent.innerHTML = `<div class="frequency-badge">🎯 ВАШ РЕЗУЛЬТАТ: ${lastConfirmedFreq} Гц</div><h4>${text.title}</h4><p>${text.desc}</p>`;
+            } else {
+                resultContent.innerHTML = `<div class="frequency-badge">📊 РЕЗУЛЬТАТЫ ТЕСТА</div><p>Пройдите тест, чтобы увидеть расшифровку ваших результатов.</p><p>Нажмите «Старт» и следуйте инструкциям. После завершения теста здесь появится подробная расшифровка вашего предела слышимости.</p>`;
+            }
+        }
+
+        // Автоматическое открытие расшифровки
+        function autoShowResult() {
+            updateResultContent();
+            document.getElementById('resultOverlay').classList.add('show');
+        }
+
+        function showResultInterpretation() {
+            updateResultContent();
+            document.getElementById('resultOverlay').classList.add('show');
+        }
+
+        function closeResultModal() { document.getElementById('resultOverlay').classList.remove('show'); }
+        function showSupportModal() { document.getElementById('supportOverlay').classList.add('show'); }
+        function closeSupportModal() { document.getElementById('supportOverlay').classList.remove('show'); }
+        function copyPhoneNumber() { 
+            navigator.clipboard.writeText("8-920-227-56-76").then(() => { 
+                let n=document.getElementById('copyNotification'); 
+                n.classList.add('show'); 
+                setTimeout(()=>n.classList.remove('show'),2000); 
+            }).catch(()=>alert('Не удалось скопировать номер')); 
+        }
+
+        function unlockAudio() { if(!audioCtx) try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if(audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {} }
+
+        function initAppAudio() { unlockAudio(); }
+        window.initAppAudio = initAppAudio;
+
+        // ========== ГЛАВНАЯ ЛОГИКА ТЕСТА ==========
+        async function runSteps() {
+            for (let i = 0; i < freqs.length; i++) {
+                if (!isRunning) break;
+                clicks = 0; 
+                let reactedInTime = false; 
+                const f = freqs[i];
+                
+                dots[i].className = 'dot active';
+                statusTxt.innerText = `${f} Гц`;
+                subStatusTxt.innerText = "Тишина... Ожидание сигнала";
+
+                const delay = 1000 + Math.random() * 3000;
+                const soundStartTime = Date.now() + delay;
+                const soundEndTime = soundStartTime + 1000;
+
+                const res = await new Promise(resolve => {
+                    const sTimer = setTimeout(() => { 
+                        if(isRunning) {
+                            playProfessionalTone(f); 
+                            subStatusTxt.innerText = "🔊 СИГНАЛ! НАЖМИ!";
+                        }
+                    }, delay);
+
+                    const checker = setInterval(() => {
+                        const now = Date.now();
+                        if (clicks > 0) {
+                            if (now < soundStartTime) {
+                                isRunning = false;
+                                clearInterval(checker);
+                                clearTimeout(sTimer);
+                                resolve(false);
+                            } 
+                            else if (now >= soundStartTime && now <= soundEndTime) {
+                                reactedInTime = true;
+                                clearInterval(checker);
+                                clearTimeout(sTimer);
+                                resolve(true);
+                            }
+                            else if (now > soundEndTime) {
+                                isRunning = false;
+                                clearInterval(checker);
+                                clearTimeout(sTimer);
+                                resolve(false);
+                            }
+                        }
+                    }, 20);
+
+                    setTimeout(() => { 
+                        clearInterval(checker); 
+                        clearTimeout(sTimer);
+                        resolve(false); 
+                    }, 5000);
+                });
+
+                if (res && isRunning) { 
+                    confirmedSteps++; 
+                    dots[i].className = 'dot success';
+                    subStatusTxt.innerText = "✅ Точно в цель!";
+                    await playVoice(VOICE.success[f], true);
+                    await new Promise(r => setTimeout(r, 800)); 
+                } else { 
+                    dots[i].className = 'dot error'; 
+                    subStatusTxt.innerText = "❌ Сигнал пропущен!";
+                    await playVoice(VOICE.error, true);
+                    isRunning = false; 
+                    break; 
+                }
+            }
+            finish();
+        }
+
+        async function startTest() {
+            if(!audioCtx) { 
+                try { 
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
+                    if(audioCtx.state === 'suspended') await audioCtx.resume(); 
+                } catch(e) { 
+                    statusTxt.innerText = "ОШИБКА"; 
+                    subStatusTxt.innerText = "AudioContext не поддерживается"; 
+                    return; 
+                } 
+            }
+            else if(audioCtx.state === 'suspended') await audioCtx.resume();
+            
+            isRunning = true;
+            testAborted = false;
+            confirmedSteps = 0;
+            clicks = 0;
+            isFinishing = false;
+            btn.innerText = "СЛЫШУ";
+            btn.disabled = false;
+            dots.forEach(d => d.className = 'dot');
+            statsDiv.innerText = "🔍 Идет сканирование частот...";
+            statusTxt.innerText = "ПОДГОТОВКА";
+            subStatusTxt.innerText = "Слушайте голосовые подсказки...";
+            
+            await playVoice(VOICE.start, true);
+            if(isRunning) await runSteps();
+        }
+
+        function finish() {
+            if(isFinishing) return;
+            isFinishing = true;
+            isRunning = false;
+            btn.innerText = "🔄 Заново";
+            btn.disabled = false;
+            
+            const lastConfirmed = confirmedSteps > 0 ? freqs[confirmedSteps-1] : 0;
+            
+            if(confirmedSteps === 7) { 
+                statusTxt.innerText = "✓ 8000 Гц"; 
+                subStatusTxt.innerText = "Все частоты подтверждены"; 
+                statsDiv.innerText = "🎉 Слух в идеальном состоянии"; 
+                playVoice(VOICE.perfect, true); 
+            }
+            else if(confirmedSteps === 0) { 
+                statusTxt.innerText = "0 Гц"; 
+                subStatusTxt.innerText = "Нет подтверждённых частот"; 
+                statsDiv.innerText = "⚠️ Проверьте громкость и повторите"; 
+            }
+            else { 
+                statusTxt.innerText = `${lastConfirmed} Гц`; 
+                subStatusTxt.innerText = "Ваш подтверждённый предел"; 
+                statsDiv.innerText = "✅ Тест завершён"; 
+                playVoice(VOICE.resultPartial, true); 
+            }
+            
+            dots.forEach((dot, idx) => { 
+                if(idx < confirmedSteps) dot.title = `${freqs[idx]} Гц ✓`; 
+                else if(idx === confirmedSteps && confirmedSteps < 7) dot.title = `${freqs[idx]} Гц ✗`; 
+                else dot.title = `${freqs[idx]} Гц`; 
+            });
+            
+            // Автоматическое открытие расшифровки
+            setTimeout(() => {
+                autoShowResult();
+            }, 500);
+            
+            isFinishing = false;
+        }
+
+        btn.addEventListener('click', () => { 
+            closeResultModal(); 
+            closeSupportModal(); 
+            if(!isRunning) { 
+                unlockAudio(); 
+                startTest(); 
+            } else { 
+                clicks++; 
+            }
+        });
+        
+        resultBtn.addEventListener('click', showResultInterpretation);
+        supportBtn.addEventListener('click', showSupportModal);
+        closeModalBtn.addEventListener('click', closeResultModal);
+        closeSupportBtn.addEventListener('click', closeSupportModal);
+        if(copyPhoneBtn) copyPhoneBtn.addEventListener('click', copyPhoneNumber);
+        document.getElementById('resultOverlay').addEventListener('click', (e) => { if(e.target === document.getElementById('resultOverlay')) closeResultModal(); });
+        document.getElementById('supportOverlay').addEventListener('click', (e) => { if(e.target === document.getElementById('supportOverlay')) closeSupportModal(); });
+        document.addEventListener('keydown', (e) => { if(e.ctrlKey && e.key === 'r') { e.preventDefault(); location.reload(); } if(e.key === 'Escape') { closeResultModal(); closeSupportModal(); } });
+        
+        preloadVoiceFiles();
+    </script>
+</body>
+</html>
