@@ -64,6 +64,13 @@
             position: relative;
             overflow: visible;
             margin: 20px auto;
+            transition: box-shadow 0.1s ease, border-color 0.1s ease;
+        }
+
+        /* === НОВОЕ: ВСПЫШКА ПРИ КЛИКЕ (индикатор) === */
+        .glass-card.click-flash {
+            box-shadow: 0 0 0 2px var(--neon-blue), 0 0 0 4px rgba(0, 242, 254, 0.5), 0 25px 50px rgba(0, 0, 0, 0.3);
+            border-color: var(--neon-blue);
         }
 
         .glass-card::-webkit-scrollbar { display: none; }
@@ -143,6 +150,7 @@
             width: 100%;
             max-width: 280px;
             margin-bottom: 15px;
+            touch-action: manipulation;
         }
 
         #mainBtn::before {
@@ -174,6 +182,11 @@
             transform: none !important;
         }
 
+        /* Защита от случайного двойного клика на мобильных */
+        #mainBtn {
+            touch-action: manipulation;
+        }
+
         .result-btn {
             position: relative;
             background: linear-gradient(135deg, rgba(0,242,254,0.2), rgba(161,140,209,0.2));
@@ -191,6 +204,7 @@
             letter-spacing: 1px;
             margin-top: 5px;
             margin-bottom: 15px;
+            touch-action: manipulation;
         }
 
         .result-btn:hover {
@@ -217,6 +231,7 @@
             max-width: 280px;
             letter-spacing: 1px;
             margin-bottom: 15px;
+            touch-action: manipulation;
         }
 
         .support-btn:hover {
@@ -503,7 +518,7 @@
 
     <!-- ВТОРАЯ СТРАНИЦА: основное приложение (изначально скрыта) -->
     <div id="appScreen" class="app-container" style="display: none;">
-        <div class="glass-card">
+        <div class="glass-card" id="glassCard">
             <div class="header-center">
                 <img src="favicon.ico" alt="Logo" class="logo-icon" onerror="this.style.display='none'">
                 <h1 class="app-title">Анти ИИ Аудиометр</h1>
@@ -596,7 +611,8 @@
             soundOn ? (ico.innerText='🔊', txt.innerText='Звук вкл') : (ico.innerText='🔇', txt.innerText='Вкл звук'); 
         }
         
-        soundBtn.onclick = () => {
+        soundBtn.onclick = (e) => {
+            e.preventDefault();
             if(soundOn) { 
                 video.muted = true; 
                 soundOn = false; 
@@ -642,8 +658,34 @@
             error: 'error.mp3',
             doubleError: 'double_error.mp3',
             perfect: 'perfect.mp3',
-            resultPartial: 'result_partial.mp3'
+            resultPartial: 'result_partial.mp3',
+            victoryChime: 'victory_chime.mp3'
         };
+
+        // === НОВЫЙ ЗВУК ПОБЕДЫ (создаём программно, чтобы не требовать доп. файл) ===
+        function playVictoryChime() {
+            if(!audioCtx) return;
+            try {
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                // Приятный "дзынь" — последовательность из двух нот: ми → соль
+                osc.frequency.setValueAtTime(659.25, now);      // Ми (E5)
+                osc.frequency.setValueAtTime(783.99, now + 0.1); // Соль (G5)
+                
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(now + 0.6);
+            } catch(e) {}
+        }
 
         // ========== ПОЛНАЯ РАСШИФРОВКА РЕЗУЛЬТАТОВ ==========
         const RESULT_TEXTS = {
@@ -685,6 +727,8 @@
         let confirmedSteps = 0;
         let testAborted = false;
         let isFinishing = false;
+        let lastClickTime = 0;
+        const DOUBLE_CLICK_DELAY = 300;
 
         const freqs = [125, 250, 500, 1000, 2000, 4000, 8000];
         const btn = document.getElementById('mainBtn');
@@ -697,6 +741,15 @@
         const subStatusTxt = document.getElementById('subStatus');
         const dots = document.querySelectorAll('.dot');
         const statsDiv = document.getElementById('stats');
+        const glassCard = document.getElementById('glassCard');
+
+        // === НОВОЕ: ВСПЫШКА ПРИ КЛИКЕ ===
+        function clickFlash() {
+            glassCard.classList.add('click-flash');
+            setTimeout(() => {
+                glassCard.classList.remove('click-flash');
+            }, 150);
+        }
 
         function stopCurrentAudio() { if(currentAudio) try { currentAudio.pause(); currentAudio.currentTime = 0; currentAudio = null; } catch(e) {} }
 
@@ -781,6 +834,7 @@
         function closeResultModal() { document.getElementById('resultOverlay').classList.remove('show'); }
         function showSupportModal() { document.getElementById('supportOverlay').classList.add('show'); }
         function closeSupportModal() { document.getElementById('supportOverlay').classList.remove('show'); }
+        
         function copyPhoneNumber() { 
             navigator.clipboard.writeText("8-920-227-56-76").then(() => { 
                 let n=document.getElementById('copyNotification'); 
@@ -908,7 +962,9 @@
                 statusTxt.innerText = "✓ 8000 Гц"; 
                 subStatusTxt.innerText = "Все частоты подтверждены"; 
                 statsDiv.innerText = "🎉 Слух в идеальном состоянии"; 
-                playVoice(VOICE.perfect, true); 
+                playVoice(VOICE.perfect, true);
+                // === НОВЫЙ ЗВУК ПОБЕДЫ ===
+                setTimeout(() => playVictoryChime(), 300);
             }
             else if(confirmedSteps === 0) { 
                 statusTxt.innerText = "0 Гц"; 
@@ -936,9 +992,24 @@
             isFinishing = false;
         }
 
-        btn.addEventListener('click', () => { 
+        // === ОБНОВЛЁННЫЙ ОБРАБОТЧИК КЛИКА С ЗАЩИТОЙ ОТ ДВОЙНОГО ===
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Защита от случайного двойного нажатия на мобильных
+            const now = Date.now();
+            if (now - lastClickTime < DOUBLE_CLICK_DELAY) {
+                console.log('Защита: двойной клик игнорирован');
+                return;
+            }
+            lastClickTime = now;
+            
+            // Визуальная вспышка
+            clickFlash();
+            
             closeResultModal(); 
             closeSupportModal(); 
+            
             if(!isRunning) { 
                 unlockAudio(); 
                 startTest(); 
@@ -947,10 +1018,26 @@
             }
         });
         
-        resultBtn.addEventListener('click', showResultInterpretation);
-        supportBtn.addEventListener('click', showSupportModal);
-        closeModalBtn.addEventListener('click', closeResultModal);
-        closeSupportBtn.addEventListener('click', closeSupportModal);
+        resultBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showResultInterpretation();
+        });
+        
+        supportBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSupportModal();
+        });
+        
+        closeModalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeResultModal();
+        });
+        
+        closeSupportBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeSupportModal();
+        });
+        
         if(copyPhoneBtn) copyPhoneBtn.addEventListener('click', copyPhoneNumber);
         document.getElementById('resultOverlay').addEventListener('click', (e) => { if(e.target === document.getElementById('resultOverlay')) closeResultModal(); });
         document.getElementById('supportOverlay').addEventListener('click', (e) => { if(e.target === document.getElementById('supportOverlay')) closeSupportModal(); });
