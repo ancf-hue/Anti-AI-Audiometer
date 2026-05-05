@@ -1,0 +1,19 @@
+# robots.txt для Анти-ИИ Аудиометр
+# Обеспечивает правильную индексацию сайта поисковыми системами
+
+User-agent: *
+Allow: /
+
+# Запрещаем индексацию служебных или неполных страниц (если появятся)
+Disallow: /temp/
+Disallow: /private/
+Disallow: /backup/
+
+# Указываем путь к карте сайта
+Sitemap: https://anti-ai-audiometer.vercel.app/sitemap.xml
+
+# Хост (для поисковых систем, поддерживающих эту директиву)
+Host: https://anti-ai-audiometer.vercel.app
+
+# Задержка между запросами для щадящего сканирования
+Crawl-delay: 1
