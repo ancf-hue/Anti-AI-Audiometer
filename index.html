@@ -67,7 +67,7 @@
             transition: box-shadow 0.1s ease, border-color 0.1s ease;
         }
 
-        /* === НОВОЕ: ВСПЫШКА ПРИ КЛИКЕ (индикатор) === */
+        /* ВСПЫШКА ПРИ КЛИКЕ (индикатор) */
         .glass-card.click-flash {
             box-shadow: 0 0 0 2px var(--neon-blue), 0 0 0 4px rgba(0, 242, 254, 0.5), 0 25px 50px rgba(0, 0, 0, 0.3);
             border-color: var(--neon-blue);
@@ -180,11 +180,6 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none !important;
-        }
-
-        /* Защита от случайного двойного клика на мобильных */
-        #mainBtn {
-            touch-action: manipulation;
         }
 
         .result-btn {
@@ -662,7 +657,7 @@
             victoryChime: 'victory_chime.mp3'
         };
 
-        // === НОВЫЙ ЗВУК ПОБЕДЫ (создаём программно, чтобы не требовать доп. файл) ===
+        // ЗВУК ПОБЕДЫ (программно)
         function playVictoryChime() {
             if(!audioCtx) return;
             try {
@@ -670,16 +665,12 @@
                 const now = audioCtx.currentTime;
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                
                 osc.type = 'sine';
-                // Приятный "дзынь" — последовательность из двух нот: ми → соль
-                osc.frequency.setValueAtTime(659.25, now);      // Ми (E5)
-                osc.frequency.setValueAtTime(783.99, now + 0.1); // Соль (G5)
-                
+                osc.frequency.setValueAtTime(659.25, now);
+                osc.frequency.setValueAtTime(783.99, now + 0.1);
                 gain.gain.setValueAtTime(0, now);
                 gain.gain.linearRampToValueAtTime(0.08, now + 0.02);
                 gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
-                
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
@@ -743,7 +734,6 @@
         const statsDiv = document.getElementById('stats');
         const glassCard = document.getElementById('glassCard');
 
-        // === НОВОЕ: ВСПЫШКА ПРИ КЛИКЕ ===
         function clickFlash() {
             glassCard.classList.add('click-flash');
             setTimeout(() => {
@@ -801,7 +791,6 @@
             } catch(e) {}
         }
 
-        // Функция обновления содержимого расшифровки
         function updateResultContent() {
             const resultContent = document.getElementById('resultContent');
             let lastConfirmedFreq = 0;
@@ -820,7 +809,6 @@
             }
         }
 
-        // Автоматическое открытие расшифровки
         function autoShowResult() {
             updateResultContent();
             document.getElementById('resultOverlay').classList.add('show');
@@ -848,7 +836,7 @@
         function initAppAudio() { unlockAudio(); }
         window.initAppAudio = initAppAudio;
 
-        // ========== ГЛАВНАЯ ЛОГИКА ТЕСТА ==========
+        // ========== ГЛАВНАЯ ЛОГИКА ТЕСТА (БЕЗ ВИЗУАЛЬНОЙ ПОДСКАЗКИ) ==========
         async function runSteps() {
             for (let i = 0; i < freqs.length; i++) {
                 if (!isRunning) break;
@@ -858,7 +846,7 @@
                 
                 dots[i].className = 'dot active';
                 statusTxt.innerText = `${f} Гц`;
-                subStatusTxt.innerText = "Тишина... Ожидание сигнала";
+                subStatusTxt.innerText = "Слушайте... Нажмите кнопку, когда услышите сигнал";
 
                 const delay = 1000 + Math.random() * 3000;
                 const soundStartTime = Date.now() + delay;
@@ -867,8 +855,9 @@
                 const res = await new Promise(resolve => {
                     const sTimer = setTimeout(() => { 
                         if(isRunning) {
-                            playProfessionalTone(f); 
-                            subStatusTxt.innerText = "🔊 СИГНАЛ! НАЖМИ!";
+                            playProfessionalTone(f);
+                            // Визуальная подсказка УДАЛЕНА — строка ниже закомментирована
+                            // subStatusTxt.innerText = "🔊 СИГНАЛ! НАЖМИ!";
                         }
                     }, delay);
 
@@ -963,7 +952,6 @@
                 subStatusTxt.innerText = "Все частоты подтверждены"; 
                 statsDiv.innerText = "🎉 Слух в идеальном состоянии"; 
                 playVoice(VOICE.perfect, true);
-                // === НОВЫЙ ЗВУК ПОБЕДЫ ===
                 setTimeout(() => playVictoryChime(), 300);
             }
             else if(confirmedSteps === 0) { 
@@ -984,7 +972,6 @@
                 else dot.title = `${freqs[idx]} Гц`; 
             });
             
-            // Автоматическое открытие расшифровки
             setTimeout(() => {
                 autoShowResult();
             }, 500);
@@ -992,19 +979,15 @@
             isFinishing = false;
         }
 
-        // === ОБНОВЛЁННЫЙ ОБРАБОТЧИК КЛИКА С ЗАЩИТОЙ ОТ ДВОЙНОГО ===
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             
-            // Защита от случайного двойного нажатия на мобильных
             const now = Date.now();
             if (now - lastClickTime < DOUBLE_CLICK_DELAY) {
-                console.log('Защита: двойной клик игнорирован');
                 return;
             }
             lastClickTime = now;
             
-            // Визуальная вспышка
             clickFlash();
             
             closeResultModal(); 
